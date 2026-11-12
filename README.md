@@ -4,102 +4,69 @@
 curl -fsSL https://raw.githubusercontent.com/PrajeetShrestha/voice-cli/v0.1.0/install.sh | /bin/sh
 ```
 
-**Install on macOS, then start the Web UI:**
+Start the Web UI:
 
 ```sh
 ~/.local/bin/voice-studio
 ```
 
-Voice Studio is a local text-to-speech CLI with a compact browser interface. It uses the natural Siri voices installed on your Mac and ffmpeg to generate downloadable MP3s. No cloud speech service, account, API key, or JavaScript build step.
+Voice Studio turns text into downloadable MP3 narration using the natural Siri voices installed on your Mac. It runs locally with a compact browser interface and an HTTP API for coding agents. No account or API key required.
 
-## Installation
+## Requirements and installation
 
-Requires **macOS 13+**, **Swift 5.9+** through Xcode or Apple Command Line Tools, and an installed **natural Siri voice**. The installer uses your existing ffmpeg, or installs it with an existing Homebrew installation. It does not install Homebrew, Apple tools, or voice assets.
+- **macOS 13+** and **Swift 5.9+**, provided by Xcode or Apple Command Line Tools. If needed, run `xcode-select --install` and finish setup before installing.
+- An installed **natural Siri voice**. Download one in System Settings → Siri or Apple Intelligence & Siri → Voice.
+- **ffmpeg with libmp3lame**. The installer uses an existing ffmpeg or installs it through an existing Homebrew setup. If neither is available, install [Homebrew](https://brew.sh), then run `brew install ffmpeg`.
 
-If Swift is missing, run `xcode-select --install`, finish the macOS installer, then repeat the installation command. If neither ffmpeg nor Homebrew is available, install [Homebrew](https://brew.sh), run `brew install ffmpeg`, then retry. Siri voices can be downloaded in System Settings → Siri or Apple Intelligence & Siri → Voice; settings names vary by macOS version.
+The command above runs [install.sh](install.sh), downloads release `v0.1.0`, and stores the app in `~/.local/share/voice-studio` with a launcher in `~/.local/bin`. If that directory is on your PATH, you can use `voice-studio` directly. Quit the app before rerunning the installer to reinstall it.
 
-The installer downloads release `v0.1.0`, stores the application in `~/.local/share/voice-studio`, and creates `~/.local/bin/voice-studio`. It runs Swift source intentionally: on the development Mac, unsigned compiled binaries do not expose the same natural Siri voices.
+## Using the Web UI
 
-The installation command downloads and executes [install.sh](install.sh). To inspect it before running:
+Leave Terminal running while using the app. Your default browser opens automatically; add `--no-open` to the launch command to open the complete URL printed in Terminal manually instead. Each restart creates a new private session URL.
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/PrajeetShrestha/voice-cli/v0.1.0/install.sh -o /tmp/voice-studio-install.sh
-less /tmp/voice-studio-install.sh
-/bin/sh /tmp/voice-studio-install.sh
-```
+1. Enter text in **Create audio** and choose a language, Siri voice, and speech speed. Nora is selected when available.
+2. Click **Generate MP3**. Audio plays when ready; press Play if your browser blocks autoplay.
+3. Click **Download MP3** to save a recording before changing controls.
 
-If `~/.local/bin` is already on your PATH, use `voice-studio` directly. Otherwise the full command above works without changing your shell configuration. Repeating the installer reinstalls the release; quit any running session first.
+After the first successful generation, changing language, voice, or speed automatically regenerates and plays the latest selection. Editing text alone requires clicking Generate MP3 or changing a voice control.
 
-## Start the Web UI
-
-```sh
-~/.local/bin/voice-studio
-```
-
-Keep the Terminal running. After a few seconds, Voice Studio opens your default browser and prints a private session URL. To open it manually:
-
-```sh
-~/.local/bin/voice-studio --no-open
-```
-
-Open the **complete URL printed in Terminal**, including its token. Each restart creates a new port and token. The server listens only on your Mac at `127.0.0.1`; a mobile-sized layout does not make it reachable from a separate phone.
-
-1. Enter text in **Create audio**.
-2. Choose a language and region, a Siri voice, and speech speed.
-3. Click **Generate MP3**. The result plays automatically; press Play if your browser blocks autoplay.
-4. Click **Download MP3** to keep a recording.
-5. After the first successful generation, changing language, voice, or speed automatically generates and plays an updated MP3. Rapid changes are combined, and outdated renders are not played.
-6. Press **Control-C** in Terminal to stop the CLI and delete temporary session audio.
-
-Editing text alone does not regenerate. Click Generate MP3 or change a voice control to use the edited text. The interface shows the latest recording, so download versions you want before changing controls.
+Open **Device readiness** to inspect missing requirements. Press **Control-C** in Terminal to stop the app and delete temporary audio; saved downloads remain available.
 
 ## Narrated demo
 
-[![Watch the Voice Studio walkthrough narrated by Nora](demo/frames/01.png)](https://github.com/PrajeetShrestha/voice-cli/releases/download/v0.1.0/voice-studio-demo.mp4)
+[![Watch the illustrated Voice Studio walkthrough](demo/frames/01.png)](https://github.com/PrajeetShrestha/voice-cli/releases/download/v0.1.0/voice-studio-demo.mp4)
 
-[Watch or download the demo video](https://github.com/PrajeetShrestha/voice-cli/releases/download/v0.1.0/voice-studio-demo.mp4) · [Transcript and rebuild instructions](docs/DEMO.md)
-
-The illustrated walkthrough covers installation, the Web UI, voice and speed controls, and narration from Codex or Claude. Its voiceover was generated by this CLI with Nora. Captions are embedded in the MP4 and also available as a [separate subtitle file](docs/demo/voice-studio-demo.srt).
+The walkthrough covers installation, the Web UI, and Codex/Claude workflows, narrated by Nora using Voice Studio itself. It includes selectable captions. See the [transcript and rebuild instructions](docs/DEMO.md).
 
 ## Web UI screenshots
 
-### Create audio on desktop
+### Desktop
 
-![Voice Studio desktop interface with Nora selected and a generated MP3 ready to play](docs/screenshots/create-audio-desktop.png)
+![Desktop interface with Nora selected and a generated MP3 ready to play](docs/screenshots/create-audio-desktop.png)
 
-### Compact mobile layout
+### Mobile layout
 
-<img src="docs/screenshots/create-audio-mobile.png" alt="Voice Studio compact mobile layout with text, language, voice, speed, and audio playback" width="390">
+<img src="docs/screenshots/create-audio-mobile.png" alt="Compact layout with text, voice controls, and audio playback" width="390">
 
 ### Device readiness
 
-![Device readiness tab showing installed encoder and local system resources](docs/screenshots/device-readiness.png)
-
-Screenshots show the actual app and audio generated locally with Nora. Installed voices and device resources vary by Mac.
-
-## Detailed guide and agent usage
-
-See the [complete usage guide](docs/USAGE.md) for setup, voice selection, speed, automatic regeneration, downloads, troubleshooting, and local HTTP API examples. See [agent usage and copyable prompts](docs/AGENT_USAGE.md) for the included narration helper. Codex, Claude, or another agent with shell access on the same Mac can start the CLI with `--no-open`, read its session URL, and generate audio through the authenticated local API.
-
-## Voices and speech speed
-
-Only installed voices with identifiers beginning with `com.apple.siri.natural.` appear. **Nora** (`com.apple.siri.natural.Nora`) is selected by default when available. It is an American English Siri voice, distinct from the Norwegian system voice named Nora. Some enumerated Siri voices cannot export audio; failures are reported without substituting another voice.
-
-Speech speed ranges from `0.20` to `0.65`, with an app default of `0.48`. These values control Apple's speech synthesis rate, not playback multipliers. With identical text, a local Nora check produced **10.93 seconds at slow**, **8.15 seconds at default**, and **4.25 seconds at fast**. Timing varies with the passage and installed voice.
+![Device readiness tab showing encoder availability and local system resources](docs/screenshots/device-readiness.png)
 
 ## Limits and privacy
 
-- Plain Unicode text, up to 10,000 characters; no SSML. The browser's UTF-16 limit, visible Unicode counter, server's Swift-character limit, and 64 KiB request-body limit differ for some input.
-- At least 256 MiB free on the temporary volume. This app safety reserve does not guarantee every long render fits; there is no artificial CPU, RAM, or GPU minimum.
-- One render at a time, up to eight HTTP handlers. Synthesis times out after five minutes; encoding after two minutes. Closing or refreshing the browser does not cancel generation.
-- Session authentication uses a random bearer token from the startup URL fragment. Keep that URL private. Host and Origin validation, no CORS, bounded requests, and restrictive CSP protect the local endpoints.
-- No external fonts, analytics, or third-party UI assets. Installed voices synthesize locally; installing tools and downloading voices may require internet.
-- Only the latest 20 MP3s are retained in a private temporary directory. Graceful shutdown deletes session files; forced termination can leave temporary files behind. Saved browser downloads remain yours.
-- Intended for one user on the same Mac, not as a remote or multiuser service.
+Text is plain Unicode, up to 10,000 characters, with a 64 KiB request-body limit; some Unicode input reaches a limit earlier. One render runs at a time. At least 256 MiB of free temporary disk space is required, and long passages may need more.
+
+The server accepts connections only from the same Mac at `127.0.0.1`; the mobile layout does not allow a separate phone to connect. Keep the session URL private. There are no external UI assets or analytics. Closing the browser does not stop rendering, and forced termination can leave temporary audio behind.
+
+## Guides and agent workflows
+
+- [Complete usage guide](docs/USAGE.md): voice selection, speech speed, downloads, troubleshooting, and API examples.
+- [Agent usage](docs/AGENT_USAGE.md): Python narration helper and copyable prompts for Codex, Claude, or other agents with shell access on the same Mac.
+- [Architecture](docs/ARCHITECTURE.md): HTTP server, synthesis pipeline, concurrency, and security boundaries.
 
 ## Run from source
 
-Download the [release source archive](https://github.com/PrajeetShrestha/voice-cli/archive/refs/tags/v0.1.0.zip), extract it, then run `./run.sh` inside the extracted folder. Or clone with Git:
+Download and extract the [release source archive](https://github.com/PrajeetShrestha/voice-cli/archive/refs/tags/v0.1.0.zip), then run `./run.sh` inside it. Alternatively:
 
 ```sh
 git clone https://github.com/PrajeetShrestha/voice-cli.git
@@ -107,35 +74,15 @@ cd voice-cli
 ./run.sh
 ```
 
-To build the dependency-free Swift package:
-
-```sh
-swift build -c release
-```
-
-A successful build does not guarantee natural-voice availability in an unsigned executable. Keep `VoiceStudio_VoiceStudio.bundle` beside the compiled executable if you copy it elsewhere. Use `./run.sh` for the supported source-mode experience.
-
-See [architecture](docs/ARCHITECTURE.md) for the HTTP server, synthesis pipeline, threading, and security boundaries.
-
-## Development checks
-
-```sh
-python3 Tests/installer.py
-python3 Tests/smoke.py
-TEST_VOICE_ID=com.apple.siri.natural.Nora python3 Tests/smoke.py
-```
-
-The installer test checks installation, reinstalling, and launcher argument handling using a local archive. The smoke test starts its own server, exercises authentication and input validation, renders Unicode narration, downloads MP3, verifies it with ffprobe, and stops the server. It requires Python 3, ffprobe, ffmpeg, and a usable natural Siri voice. The app itself does not require Python.
-
-When SwiftPM's nested sandbox is unavailable in automation, `swift build --disable-sandbox -c release` is a build-only fallback.
+The source launcher is intentional: unsigned compiled binaries may not expose the same natural Siri voices. For build commands and integration tests, see [development checks](docs/USAGE.md#building-and-development-checks).
 
 ## Uninstall
 
-Stop Voice Studio, then remove its two installation paths:
+Stop the app, then remove its installation:
 
 ```sh
 rm -f ~/.local/bin/voice-studio
 rm -rf ~/.local/share/voice-studio
 ```
 
-This leaves ffmpeg, Homebrew, downloaded voice assets, and saved recordings in place.
+This leaves ffmpeg, Homebrew, voice assets, and saved recordings in place.
