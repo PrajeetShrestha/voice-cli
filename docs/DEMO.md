@@ -1,6 +1,6 @@
 # Voice Studio narrated walkthrough
 
-[Watch or download the MP4](https://github.com/PrajeetShrestha/voice-cli/releases/download/v0.1.0/voice-studio-demo.mp4). The walkthrough uses illustrated command examples, real Web UI screenshots, and Nora narration generated locally through Voice Studio. It covers manual use and agent automation on the same Mac.
+[Watch on YouTube](https://www.youtube.com/watch?v=ZE_4kn-xiFc) or [download the MP4](https://github.com/PrajeetShrestha/voice-cli/releases/download/v0.1.0/voice-studio-demo.mp4). The walkthrough uses illustrated command examples, real Web UI screenshots, and Nora narration generated locally through Voice Studio. It covers manual use and agent automation on the same Mac.
 
 ## Rebuild the video
 

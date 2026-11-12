@@ -1,0 +1,34 @@
+GitHub project and installer: https://github.com/PrajeetShrestha/voice-cli
+
+Generate local MP3 voiceovers on your Mac with Voice Studio. This walkthrough shows installation, the compact Web UI, Siri voice selection, speech speed, automatic regeneration, and how agents such as Codex or Claude can generate narration through the local helper or HTTP API.
+
+The narration in this video was generated with Voice Studio itself using Nora.
+
+INSTALL
+curl -fsSL https://raw.githubusercontent.com/PrajeetShrestha/voice-cli/v0.1.0/install.sh | /bin/sh
+
+START THE WEB UI
+~/.local/bin/voice-studio
+
+Requirements: macOS 13+, Swift 5.9+ through Xcode or Apple Command Line Tools, an installed natural Siri voice, and ffmpeg with libmp3lame. The installer can install ffmpeg through an existing Homebrew setup. It does not install Homebrew, Apple tools, or voice assets.
+
+GUIDES
+Detailed usage: https://github.com/PrajeetShrestha/voice-cli/blob/main/docs/USAGE.md
+Agent helper and prompts: https://github.com/PrajeetShrestha/voice-cli/blob/main/docs/AGENT_USAGE.md
+Transcript: https://github.com/PrajeetShrestha/voice-cli/blob/main/docs/DEMO.md
+
+CHAPTERS
+00:00 Local narration for people and agents
+00:16 Install once and open the Web UI
+00:38 Create your first recording
+00:57 Change the voice or speech speed
+01:20 Give Codex or Claude a narration tool
+01:40 Use the local API directly
+02:02 Verify the MP3 and save your work
+02:23 Start with the GitHub guide
+
+The browser UI and API run locally on the same Mac. Python 3 is needed only for the optional agent helper. Download audio before stopping the CLI. If your browser blocks autoplay, press Play.
+
+AI-generated Nora narration, illustrated workflow graphics, and an AI-generated thumbnail are used in this demonstration.
+
+#VoiceStudio #TextToSpeech #macOS #Codex #Claude

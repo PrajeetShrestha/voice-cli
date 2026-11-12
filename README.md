@@ -34,7 +34,7 @@ Open **Device readiness** to inspect missing requirements. Press **Control-C** i
 
 ## Narrated demo
 
-[![Watch the illustrated Voice Studio walkthrough](demo/frames/01.png)](https://github.com/PrajeetShrestha/voice-cli/releases/download/v0.1.0/voice-studio-demo.mp4)
+[![Watch the Voice Studio walkthrough on YouTube](docs/youtube/thumbnail.png)](https://www.youtube.com/watch?v=ZE_4kn-xiFc)
 
 The walkthrough covers installation, the Web UI, and Codex/Claude workflows, narrated by Nora using Voice Studio itself. It includes selectable captions. See the [transcript and rebuild instructions](docs/DEMO.md).
 
