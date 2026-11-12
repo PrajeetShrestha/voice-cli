@@ -1,0 +1,9 @@
+.build/
+.DS_Store
+*.mp3
+*.caf
+.playwright-mcp/
+agents.md
+.swiftpm/
+docs/demo/*.mp4
+__pycache__/

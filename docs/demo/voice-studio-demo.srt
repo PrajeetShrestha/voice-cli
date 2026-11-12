@@ -1,0 +1,143 @@
+1
+00:00:00,000 --> 00:00:05,380
+Meet Voice Studio. A small Mac command line tool with a browser
+
+2
+00:00:05,380 --> 00:00:10,759
+interface. It turns text into downloadable MP3 narration using installed Siri voices.
+
+3
+00:00:10,759 --> 00:00:16,139
+This video's narration was made with Voice Studio itself, using Nora.
+
+4
+00:00:16,839 --> 00:00:21,107
+Start with the one line installer at the top of the GitHub
+
+5
+00:00:21,107 --> 00:00:25,376
+readme. You need macOS, Apple command line tools, and a downloaded natural
+
+6
+00:00:25,376 --> 00:00:29,645
+Siri voice. The installer uses your existing encoder, or installs ffmpeg through
+
+7
+00:00:29,645 --> 00:00:33,914
+an existing Homebrew setup. Then run the installed voice studio command. Leave
+
+8
+00:00:33,914 --> 00:00:38,183
+Terminal open while you work.
+
+9
+00:00:38,883 --> 00:00:43,360
+In Create audio, paste your script. Choose the language and region, then
+
+10
+00:00:43,360 --> 00:00:47,837
+an installed Siri voice. Nora is selected when available. Click Generate MP3.
+
+11
+00:00:47,837 --> 00:00:52,314
+The audio plays when it is ready, and Download MP3 saves a
+
+12
+00:00:52,314 --> 00:00:56,791
+copy. If your browser blocks autoplay, press Play.
+
+13
+00:00:57,491 --> 00:01:01,932
+Move the speech speed slider left for slower speech, or right for
+
+14
+00:01:01,932 --> 00:01:06,374
+faster speech. It changes the generated recording, not the player's playback speed.
+
+15
+00:01:06,374 --> 00:01:10,815
+After the first successful render, changing language, voice, or speed regenerates and
+
+16
+00:01:10,815 --> 00:01:15,257
+plays updated audio. Rapid changes are combined. Editing text alone still needs
+
+17
+00:01:15,257 --> 00:01:19,699
+Generate MP3.
+
+18
+00:01:20,399 --> 00:01:24,358
+Agents with shell access on the same Mac can use the included
+
+19
+00:01:24,358 --> 00:01:28,317
+Python helper. Ask Codex or Claude to read a script file, use
+
+20
+00:01:28,317 --> 00:01:32,277
+Nora, and save a voiceover MP3. The helper starts Voice Studio without
+
+21
+00:01:32,277 --> 00:01:36,236
+a browser, checks readiness, generates the recording, and shuts down its own
+
+22
+00:01:36,236 --> 00:01:40,196
+server. Python three is required for this helper.
+
+23
+00:01:40,896 --> 00:01:45,109
+For a custom agent workflow, start Voice Studio with no open. Read
+
+24
+00:01:45,109 --> 00:01:49,323
+the private session URL from Terminal. Send the token as a bearer
+
+25
+00:01:49,323 --> 00:01:53,536
+authorization header. Check status, post text, a voice identifier, and rate to
+
+26
+00:01:53,536 --> 00:01:57,749
+generate, then download the returned audio path. Run requests one at a
+
+27
+00:01:57,749 --> 00:02:01,963
+time and keep the token private.
+
+28
+00:02:02,663 --> 00:02:06,652
+Use ffprobe to verify that the saved file is MP3 with a
+
+29
+00:02:06,652 --> 00:02:10,641
+nonzero duration. Your agent can then use it in a demo, presentation,
+
+30
+00:02:10,641 --> 00:02:14,631
+or video. The server is local to this Mac. Download recordings before
+
+31
+00:02:14,631 --> 00:02:18,620
+stopping the CLI, because Control C deletes temporary session audio. Saved files
+
+32
+00:02:18,620 --> 00:02:22,609
+remain yours.
+
+33
+00:02:23,309 --> 00:02:27,029
+The GitHub project includes the installer, screenshots, a detailed usage guide, and
+
+34
+00:02:27,029 --> 00:02:30,749
+copyable agent instructions. Start with a short script, choose Nora, and generate
+
+35
+00:02:30,749 --> 00:02:34,469
+your first recording. The same local tool works for you and your
+
+36
+00:02:34,469 --> 00:02:38,189
+coding agents.
