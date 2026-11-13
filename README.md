@@ -86,3 +86,67 @@ rm -rf ~/.local/share/voice-studio
 ```
 
 This leaves ffmpeg, Homebrew, voice assets, and saved recordings in place.
+
+## Optional Kokoro engine (macOS and Linux)
+
+The latest source checkout supports **Siri + Kokoro on macOS** and **Kokoro on Linux**.
+The tagged `v0.1.0` installer above is the older Siri-only release; clone/pull this
+repository for these additions. The current `install.sh` remains a macOS installer.
+Linux uses Python directly and does not require Swift.
+
+Kokoro is optional: launching the app never installs Python packages or downloads a
+model. The UI shows **Kokoro — not installed** with setup instructions when it cannot
+find the packages. On macOS, detection checks `VOICE_STUDIO_KOKORO_PYTHON`, project
+`.venv` / `.venv-kokoro`, then common Python paths. Set the variable for installations
+elsewhere. An explicit override takes precedence and is not silently replaced.
+
+Use a separate Python **3.10+** environment containing `kokoro`, `torch` and
+`soundfile`. Follow the [official Kokoro setup](https://github.com/hexgrad/kokoro)
+for language dependencies (including eSpeak-ng where required). Keep model/cache
+paths in your existing `HF_HOME` / `XDG_CACHE_HOME` if you already have them.
+
+```sh
+export VOICE_STUDIO_KOKORO_PYTHON=/absolute/path/to/kokoro-venv/bin/python
+./run.sh
+# Headless Linux:
+./run.sh --no-open
+```
+
+Choose **Kokoro** in the UI, then language/accent, female/male voice and speed
+(0.5–2.0×). The catalog contains 54 preset voices, including all nine American male
+voices. It is a catalog, not a guarantee that every language dependency is installed.
+Package detection is lightweight; the model is loaded and checked on generation.
+This adapter uses CPU inference with up to four threads and loads a new process per
+render, so generation includes model-loading time.
+
+**Allow missing model, voice and language asset downloads** is off by default.
+With it off, cached/offline generation is used and missing assets produce an error.
+Enable it deliberately for first use if you want the official model/voice assets
+(and required English language model) downloaded. No text is sent to a speech API.
+Other languages may require manually installing optional packages. MP3 generation
+still requires ffmpeg with libmp3lame. No model installation, cloning, voice training,
+or pitch/emotion controls are implied by this integration.
+
+The Python server preserves loopback-only binding, bearer-token authentication,
+Host/Origin validation, one active render, bounded requests, timeouts and temporary
+outputs. It is not a public server. Do not bind it publicly or share session tokens.
+
+### Kokoro API and command-line generation
+
+`GET /api/status` now includes `engines`; the old `voices` array remains Siri-only
+for compatibility. POST `/api/generate` accepts:
+
+```json
+{"engine":"kokoro","text":"Hello from Voice Studio.","voice":"am_michael","rate":1.0,"allowDownloads":false}
+```
+
+Omitting `engine` on macOS preserves the original Siri API. On Linux, Kokoro is the
+only engine. The narration helper supports explicit selection:
+
+```sh
+printf 'Hello from Voice Studio.' | python3 scripts/narrate.py \
+  --engine kokoro --voice am_michael --rate 1 --output narration.mp3
+```
+
+Run `python3 Tests/kokoro.py` for portable catalog, validation and HTTP-security
+checks. `python3 Tests/smoke.py` still exercises real Siri generation on macOS.

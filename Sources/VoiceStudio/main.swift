@@ -35,17 +35,33 @@ func run(_ path: String, _ args: [String], timeout: TimeInterval = 30) throws ->
 }
 let encoderReady: Bool = ffmpeg.flatMap { try? run($0, ["-hide_banner", "-encoders"]) }?.contains("libmp3lame") == true
 func diskFree() -> Int64 { ((try? fm.attributesOfFileSystem(forPath: session.path)[.systemFreeSize]) as? NSNumber)?.int64Value ?? 0 }
+#if SWIFT_PACKAGE
+let kokoroURL = Bundle.module.url(forResource: "kokoro_bridge", withExtension: "py")!
+#else
+let kokoroURL = htmlURL.deletingLastPathComponent().appendingPathComponent("kokoro_bridge.py")
+#endif
+let pythonCandidates = [ProcessInfo.processInfo.environment["VOICE_STUDIO_KOKORO_PYTHON"], fm.currentDirectoryPath + "/.venv/bin/python", fm.currentDirectoryPath + "/.venv-kokoro/bin/python", "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"].compactMap { $0 }
+var kokoroPython: String?
+var kokoroStatus: [String: Any] = ["id":"kokoro", "name":"Kokoro", "available":false, "reason":"Python with Kokoro was not found. Set VOICE_STUDIO_KOKORO_PYTHON to your Kokoro environment's Python, then restart.", "voices":[]]
+for candidate in Array(NSOrderedSet(array: pythonCandidates)) as! [String] where fm.isExecutableFile(atPath: candidate) {
+    if let result = try? run(candidate, [kokoroURL.path, "detect"], timeout: 15), let data = result.data(using: .utf8), let status = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+        kokoroStatus = status
+        if status["available"] as? Bool == true { kokoroPython = candidate; break }
+    }
+    if ProcessInfo.processInfo.environment["VOICE_STUDIO_KOKORO_PYTHON"] != nil { break }
+}
+func engines() -> [[String: Any]] { [["id":"siri", "name":"Siri", "available":!installedVoices.isEmpty, "voices":voices(), "reason":"Installed natural Siri voices"], kokoroStatus] }
 let installedVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.identifier.hasPrefix("com.apple.siri.natural.") }
 func voiceName(_ voice: AVSpeechSynthesisVoice) -> String { voice.identifier == "com.apple.siri.natural.Nora" ? "\(voice.name) (Siri Nora)" : voice.name }
 func voices() -> [[String: String]] { installedVoices.sorted { ($0.language, $0.name) < ($1.language, $1.name) }.map { ["id": $0.identifier, "name": voiceName($0), "language": $0.language, "quality": $0.quality == .premium ? "Premium" : ($0.quality == .enhanced ? "Enhanced" : "Standard")] } }
 func specs() -> [String: Any] {
     var blockers = [String]()
     if !encoderReady { blockers.append("ffmpeg with the libmp3lame encoder is required. Install ffmpeg yourself (for example, brew install ffmpeg if you already use Homebrew), then restart this CLI.") }
-    if voices().isEmpty { blockers.append("No installed Siri natural voices are exposed in this launch mode. Start with ./run.sh in Terminal. If still empty, choose and download a Siri voice in System Settings → Siri (or Apple Intelligence & Siri), then restart. Standard and novelty voices are intentionally hidden.") }
+    if voices().isEmpty && kokoroPython == nil { blockers.append("No installed Siri natural voices are exposed in this launch mode. Start with ./run.sh in Terminal. If still empty, choose and download a Siri voice in System Settings → Siri (or Apple Intelligence & Siri), then restart. Standard and novelty voices are intentionally hidden.") }
     if diskFree() < 256 * 1024 * 1024 { blockers.append("Less than 256 MiB is free on the temporary volume. Free space before generating. This is this app's safety reserve, not an Apple hardware minimum.") }
     var uts = utsname(); uname(&uts)
     let arch = withUnsafePointer(to: &uts.machine) { ptr in ptr.withMemoryRebound(to: CChar.self, capacity: 256) { String(cString: $0) } }
-    return ["os": ProcessInfo.processInfo.operatingSystemVersionString, "architecture": arch, "cores": ProcessInfo.processInfo.activeProcessorCount, "memoryBytes": ProcessInfo.processInfo.physicalMemory, "diskFreeBytes": diskFree(), "ffmpeg": ffmpeg ?? "Not found", "encoderReady": encoderReady, "blockers": blockers, "ready": blockers.isEmpty, "requirements": ["macOS 13 or newer; Intel or Apple silicon", "At least one installed Siri natural voice", "ffmpeg with libmp3lame for MP3 encoding", "256 MiB free temporary space safety reserve", "No GPU, API key, or model download required", "No extra RAM minimum imposed; long passages use more time and disk"]]
+    return ["os": ProcessInfo.processInfo.operatingSystemVersionString, "architecture": arch, "cores": ProcessInfo.processInfo.activeProcessorCount, "memoryBytes": ProcessInfo.processInfo.physicalMemory, "diskFreeBytes": diskFree(), "ffmpeg": ffmpeg ?? "Not found", "encoderReady": encoderReady, "blockers": blockers, "ready": blockers.isEmpty, "requirements": ["macOS 13 or newer; Intel or Apple silicon", "An installed Siri natural voice or a configured Kokoro Python environment", "ffmpeg with libmp3lame for MP3 encoding", "256 MiB free temporary space safety reserve", "Siri: no model download; Kokoro: Python packages plus model/voice assets", "No extra RAM minimum imposed; long passages use more time and disk"]]
 }
 // Speech starts and completes on the main run loop. PCM writes are lock-protected.
 // Do not spin a nested run loop inside a main-queue block: delegate delivery can stall.
@@ -135,19 +151,29 @@ func handle(_ fd: Int32) {
         guard r.headers["host"] == "127.0.0.1:\(port)", r.headers["origin"] == nil || r.headers["origin"] == origin else { json(fd, 403, ["error":"Untrusted host or origin"]); return }
         if r.path == "/" && r.method == "GET" { respond(fd, 200, "text/html; charset=utf-8", try Data(contentsOf: htmlURL)); return }
         guard r.headers["authorization"] == "Bearer " + token else { json(fd, 403, ["error":"Session expired. Open the URL printed by the CLI."]); return }
-        if r.path == "/api/status" && r.method == "GET" { stateLock.lock(); let b = busy; stateLock.unlock(); json(fd, 200, ["specs":specs(), "voices":voices(), "busy":b]); return }
+        if r.path == "/api/status" && r.method == "GET" { stateLock.lock(); let b = busy; stateLock.unlock(); json(fd, 200, ["specs":specs(), "voices":voices(), "busy":b, "engines":engines()]); return }
         if r.path.hasPrefix("/api/audio/") && r.method == "GET" {
             let id = String(r.path.dropFirst("/api/audio/".count)); stateLock.lock(); let exists = outputs.contains(id); stateLock.unlock()
             guard exists else { json(fd, 404, ["error":"Audio expired or not found"]); return }
             respond(fd, 200, "audio/mpeg", try Data(contentsOf: session.appendingPathComponent(id + ".mp3")), extra: "Content-Disposition: attachment; filename=\"voice-studio.mp3\"\r\n"); return
         }
         guard r.path == "/api/generate", r.method == "POST" else { json(fd, 404, ["error":"Not found"]); return }
-        guard r.headers["content-type"]?.hasPrefix("application/json") == true, let obj = try JSONSerialization.jsonObject(with: r.body) as? [String: Any], let text = obj["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.count <= 10_000, let voiceID = obj["voice"] as? String, let voice = installedVoices.first(where: {$0.identifier == voiceID}), let rate = obj["rate"] as? Double, rate.isFinite, (0.2...0.65).contains(rate) else { json(fd, 400, ["error":"Provide 1–10,000 characters, an installed voice, and a rate from 0.20–0.65."]); return }
+        guard r.headers["content-type"]?.hasPrefix("application/json") == true, let obj = try JSONSerialization.jsonObject(with: r.body) as? [String: Any], let text = obj["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.count <= 10_000, let voiceID = obj["voice"] as? String, let rate = obj["rate"] as? Double, rate.isFinite else { json(fd, 400, ["error":"Provide text, a voice and a finite rate."]); return }
+        let engine = obj["engine"] as? String ?? "siri"
+        let voice = installedVoices.first(where: {$0.identifier == voiceID})
+        let kokoroVoice = (kokoroStatus["voices"] as? [[String: String]])?.first(where: {$0["id"] == voiceID})
+        guard (engine == "siri" && voice != nil && (0.2...0.65).contains(rate)) || (engine == "kokoro" && kokoroVoice != nil && (0.5...2.0).contains(rate)) else { json(fd, 400, ["error":"Choose an available engine and voice. Siri rate: 0.20–0.65; Kokoro speed: 0.5–2.0."]); return }
         guard specs()["ready"] as? Bool == true, let ffmpeg else { json(fd, 503, ["error":"Requirements are unmet. Check Device readiness."]); return }
         stateLock.lock(); if busy { stateLock.unlock(); json(fd, 409, ["error":"Another generation is running. Wait for it to finish."]); return }; busy = true; stateLock.unlock()
         defer { stateLock.lock(); busy = false; stateLock.unlock() }
         let id = UUID().uuidString; let caf = session.appendingPathComponent(id + ".caf"); let mp3 = session.appendingPathComponent(id + ".mp3")
         defer { try? fm.removeItem(at: caf) }
+        if engine == "kokoro", let python = kokoroPython {
+            let input = session.appendingPathComponent(id + ".json")
+            defer { try? fm.removeItem(at: input) }
+            try JSONSerialization.data(withJSONObject: obj).write(to: input)
+            _ = try run(python, [kokoroURL.path, "render", input.path, caf.path], timeout: 300)
+        } else if let voice {
         let done = DispatchSemaphore(value: 0); var failure: Error?
         DispatchQueue.main.async {
             let renderer = Renderer()
@@ -158,9 +184,10 @@ func handle(_ fd: Int32) {
         }
         done.wait()
         if let failure { throw failure }
+        }
         do { _ = try run(ffmpeg, ["-hide_banner","-loglevel","error","-nostdin","-n","-i",caf.path,"-codec:a","libmp3lame","-q:a","2",mp3.path], timeout: 120) } catch { try? fm.removeItem(at: mp3); throw error }
         stateLock.lock(); outputs.append(id); if outputs.count > 20 { let old = outputs.removeFirst(); try? fm.removeItem(at: session.appendingPathComponent(old + ".mp3")) }; stateLock.unlock()
-        json(fd, 200, ["id": id, "voice": voiceName(voice), "download": "/api/audio/" + id])
+        json(fd, 200, ["id": id, "voice": engine == "siri" ? voiceName(voice!) : (kokoroVoice?["name"] ?? voiceID), "download": "/api/audio/" + id])
     } catch { json(fd, 422, ["error": error.localizedDescription]) }
 }
 signal(SIGPIPE, SIG_IGN)

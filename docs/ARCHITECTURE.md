@@ -69,3 +69,19 @@ TEST_COMPILED=1 python3 Tests/smoke.py  # Requires built release executable
 The source launch is intentional: on the development Mac, unsigned compiled binaries do not expose the same natural Siri voices. A successful package build does not establish voice availability. Compiled execution also needs the companion `VoiceStudio_VoiceStudio.bundle` resource directory. If SwiftPM's nested sandbox is unavailable in automation, use `swift build --disable-sandbox -c release`.
 
 For behavior changes, use the smoke test when the machine has the required voice and encoder assets. It generates real audio and requires readiness to pass. Keep README instructions and the browser/server contract aligned with changes. Documentation-only edits do not require audio generation. The separate installer can install ffmpeg through an existing Homebrew installation; the running CLI does not install dependencies.
+
+## Optional Kokoro and Linux extension
+
+The latest source is no longer macOS-only. `kokoro_bridge.py`, packaged alongside
+the HTML, supplies a 54-voice catalog, import-spec detection, CPU synthesis and a
+portable loopback HTTP server. On macOS, Swift retains Siri and launches the bridge
+in the configured Python for Kokoro; on Linux `run.sh` launches the Python server.
+No packages or models are installed during startup. The server status has an
+`engines` array; existing `voices` remains Siri-only. Kokoro requests carry
+`engine: kokoro`, a catalog voice ID, speed 0.5–2.0 and an explicit `allowDownloads`
+boolean. Default offline mode prohibits model downloads and reports missing assets.
+See README for setup, dependency and version details. UI options are engine-specific.
+Model readiness is not inferred from package detection. Each render uses a bounded
+subprocess (300 seconds synthesis, 120 seconds encoding), and only one runs at once.
+The portable backend uses the same HTML and security contract; its HTTP workers
+are capped at eight. Mac Siri export still depends on OS-provided voice access.

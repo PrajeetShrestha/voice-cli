@@ -45,6 +45,7 @@ tar -xzf "$staging/source.tar.gz" -C "$staging/source" --strip-components=1
 mkdir -p "$install_root/Sources/VoiceStudio" "$install_root/scripts" "$bin_dir"
 cp "$staging/source/Sources/VoiceStudio/main.swift" "$install_root/Sources/VoiceStudio/main.swift"
 cp "$staging/source/Sources/VoiceStudio/index.html" "$install_root/Sources/VoiceStudio/index.html"
+if [ -f "$staging/source/Sources/VoiceStudio/kokoro_bridge.py" ]; then cp "$staging/source/Sources/VoiceStudio/kokoro_bridge.py" "$install_root/Sources/VoiceStudio/"; fi
 cp "$staging/source/run.sh" "$install_root/run.sh"
 cp "$staging/source/scripts/narrate.py" "$install_root/scripts/narrate.py"
 chmod +x "$install_root/run.sh"

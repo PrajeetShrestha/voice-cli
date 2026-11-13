@@ -37,18 +37,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--text-file', type=Path, help='UTF-8 input file; otherwise read stdin')
     parser.add_argument('--output', type=Path, required=True, help='Destination MP3; must not already exist')
-    parser.add_argument('--voice', default='com.apple.siri.natural.Nora', help='Exact installed natural Siri voice ID')
-    parser.add_argument('--rate', type=float, default=0.48, help='Apple speech rate from 0.20 through 0.65')
+    parser.add_argument('--engine', choices=['siri','kokoro'], default='siri')
+    parser.add_argument('--voice', help='Exact voice ID; default Nora for Siri or af_heart for Kokoro')
+    parser.add_argument('--allow-downloads', action='store_true', help='Allow missing Kokoro model/voice/language downloads')
+    parser.add_argument('--rate', type=float, default=None, help='Siri: 0.20–0.65; Kokoro: 0.5–2.0')
     parser.add_argument('--url', default=os.environ.get('VOICE_STUDIO_URL'), help='Existing private session URL; also read from VOICE_STUDIO_URL')
     args = parser.parse_args()
-    if not 0.2 <= args.rate <= 0.65:
-        parser.error('--rate must be between 0.20 and 0.65')
+    args.voice = args.voice or ('af_heart' if args.engine=='kokoro' else 'com.apple.siri.natural.Nora')
+    args.rate = args.rate if args.rate is not None else (1.0 if args.engine=='kokoro' else 0.48)
+    lo,hi=(.5,2) if args.engine=='kokoro' else (.2,.65)
+    if not lo <= args.rate <= hi:
+        parser.error('--rate is outside engine limits')
     if args.output.exists():
         parser.error('output already exists; choose another filename')
     text = args.text_file.read_text(encoding='utf-8') if args.text_file else sys.stdin.read()
     if not text.strip():
         parser.error('provide nonempty text through --text-file or stdin')
-    payload = {'text': text, 'voice': args.voice, 'rate': args.rate}
+    payload = {'engine':args.engine, 'allowDownloads':args.allow_downloads, 'text': text, 'voice': args.voice, 'rate': args.rate}
     if len(json.dumps(payload).encode('utf-8')) > 65536:
         parser.error('JSON body exceeds 64 KiB; split the text into smaller passages')
     process = None
@@ -81,7 +86,8 @@ def main():
         status = json.loads(request(base, token, '/api/status'))
         if not status['specs']['ready']:
             raise RuntimeError('; '.join(status['specs']['blockers']))
-        if args.voice not in {voice['id'] for voice in status['voices']}:
+        catalog=next((e.get('voices',[]) for e in status.get('engines',[]) if e['id']==args.engine),status['voices'])
+        if args.voice not in {voice['id'] for voice in catalog}:
             raise RuntimeError('Requested voice is not installed. Read /api/status and choose an exact available ID; no voice was substituted.')
         result = json.loads(request(base, token, '/api/generate', payload))
         audio = request(base, token, result['download'])
