@@ -26,6 +26,20 @@ needed after installation. Running `voice-studio` without arguments still works.
 
 Voice Studio turns text into downloadable MP3 narration using the natural Siri voices installed on your Mac. It runs locally with a compact browser interface and an HTTP API for coding agents. No account or API key required.
 
+## Current interface
+
+Real screenshots from the current CLI running in Chrome on macOS. This Mac has
+Siri voices installed; Kokoro is **not installed on this Mac**. The second screen
+shows the actual setup and refresh state, not a simulated successful installation.
+
+![Voice Studio with the installed Siri Nora voice](docs/screenshots/studio-siri-macos.jpg)
+
+![Kokoro setup state with Refresh engines and disabled generation until installation](docs/screenshots/kokoro-setup-macos.jpg)
+
+When Kokoro is available, the engine picker enables its 54-voice catalog, voice-type
+and language filters, and 0.5–2.0× speed. Real offline Kokoro MP3 generation has been
+tested on Linux; a post-install Linux screenshot is not included here.
+
 ## Requirements and installation
 
 - **macOS 13+** and **Swift 5.9+**, provided by Xcode or Apple Command Line Tools. If needed, run `xcode-select --install` and finish setup before installing.
