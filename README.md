@@ -39,8 +39,9 @@ The local installer copies this checkout and stores the app in `~/.local/share/v
 Leave Terminal running while using the app. Your default browser opens automatically; add `--no-open` to the launch command to open the complete URL printed in Terminal manually instead. Each restart creates a new private session URL.
 
 1. Enter text in **Create audio** and choose a language, Siri voice, and speech speed. Nora is selected when available.
-2. Click **Generate MP3**. Audio plays when ready; press Play if your browser blocks autoplay.
-3. Click **Download MP3** to save a recording before changing controls.
+2. Select **Siri** or **Kokoro**. For Kokoro, filter by voice type and language, choose a voice, and set speed (0.5–2.0×). Allow downloads only if you want missing model/voice assets downloaded.
+3. Click **Generate MP3**. Audio plays when ready; press Play if your browser blocks autoplay.
+4. Click **Download MP3** to save a recording before changing controls.
 
 After the first successful generation, changing language, voice, or speed automatically regenerates and plays the latest selection. Editing text alone requires clicking Generate MP3 or changing a voice control.
 
@@ -107,6 +108,14 @@ The latest source checkout supports **Siri + Kokoro on macOS** and **Kokoro on L
 The tagged `v0.1.0` installer is the older Siri-only release; use the current
 checkout and `./install.sh --local` for these additions. The current `install.sh` remains a macOS installer.
 Linux uses Python directly and does not require Swift.
+
+After installing Kokoro packages into the configured Python environment, click
+**Refresh engines** in the Web UI. The server rechecks availability without restarting,
+keeps your text and voice controls, and enables Kokoro when the packages are found.
+Refreshing the page also rechecks. If you change the Python environment path itself,
+restart with `VOICE_STUDIO_KOKORO_PYTHON=/path/to/python voice-studio web` because a
+running process cannot inherit new shell environment variables. Detection confirms
+packages, not downloaded model or language assets; these are checked on generation.
 
 Kokoro is optional: launching the app never installs Python packages or downloads a
 model. The UI shows **Kokoro — not installed** with setup instructions when it cannot

@@ -22,6 +22,7 @@ VOICES = [dict(id=p+'_'+n,name=n.title(),language=lang,gender=gender,quality='Ne
 IDS = {v['id'] for v in VOICES}
 
 def detect():
+    importlib.invalidate_caches()
     missing = [p for p in ('kokoro','torch','soundfile') if importlib.util.find_spec(p) is None]
     if sys.version_info < (3,10): missing.append('Python 3.10+')
     return dict(id='kokoro', name='Kokoro', available=not missing, python=sys.executable,
@@ -102,6 +103,7 @@ def serve(no_open=False):
                 if not self.authorized(): return
                 if self.path=='/': return self.reply(200,pathlib.Path(__file__).with_name('index.html').read_bytes(),'text/html; charset=utf-8')
                 if self.path=='/api/status':
+                    engine.update(detect())
                     free=shutil.disk_usage(root).free; blockers=[]
                     if not encoder_ok: blockers.append('ffmpeg with libmp3lame is required.')
                     if free<256*1024**2: blockers.append('Less than 256 MiB temporary disk space available.')

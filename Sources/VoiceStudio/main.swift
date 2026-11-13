@@ -41,8 +41,12 @@ let kokoroURL = Bundle.module.url(forResource: "kokoro_bridge", withExtension: "
 let kokoroURL = htmlURL.deletingLastPathComponent().appendingPathComponent("kokoro_bridge.py")
 #endif
 let pythonCandidates = [ProcessInfo.processInfo.environment["VOICE_STUDIO_KOKORO_PYTHON"], fm.currentDirectoryPath + "/.venv/bin/python", fm.currentDirectoryPath + "/.venv-kokoro/bin/python", "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"].compactMap { $0 }
+let engineLock = NSRecursiveLock()
 var kokoroPython: String?
 var kokoroStatus: [String: Any] = ["id":"kokoro", "name":"Kokoro", "available":false, "reason":"Python with Kokoro was not found. Set VOICE_STUDIO_KOKORO_PYTHON to your Kokoro environment's Python, then restart.", "voices":[]]
+func refreshKokoro() {
+    engineLock.lock(); defer { engineLock.unlock() }
+    kokoroPython = nil
 for candidate in Array(NSOrderedSet(array: pythonCandidates)) as! [String] where fm.isExecutableFile(atPath: candidate) {
     if let result = try? run(candidate, [kokoroURL.path, "detect"], timeout: 15), let data = result.data(using: .utf8), let status = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
         kokoroStatus = status
@@ -50,11 +54,14 @@ for candidate in Array(NSOrderedSet(array: pythonCandidates)) as! [String] where
     }
     if ProcessInfo.processInfo.environment["VOICE_STUDIO_KOKORO_PYTHON"] != nil { break }
 }
-func engines() -> [[String: Any]] { [["id":"siri", "name":"Siri", "available":!installedVoices.isEmpty, "voices":voices(), "reason":"Installed natural Siri voices"], kokoroStatus] }
+}
+refreshKokoro()
+func engines() -> [[String: Any]] { engineLock.lock(); defer { engineLock.unlock() }; return [["id":"siri", "name":"Siri", "available":!installedVoices.isEmpty, "voices":voices(), "reason":"Installed natural Siri voices"], kokoroStatus] }
 let installedVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.identifier.hasPrefix("com.apple.siri.natural.") }
 func voiceName(_ voice: AVSpeechSynthesisVoice) -> String { voice.identifier == "com.apple.siri.natural.Nora" ? "\(voice.name) (Siri Nora)" : voice.name }
 func voices() -> [[String: String]] { installedVoices.sorted { ($0.language, $0.name) < ($1.language, $1.name) }.map { ["id": $0.identifier, "name": voiceName($0), "language": $0.language, "quality": $0.quality == .premium ? "Premium" : ($0.quality == .enhanced ? "Enhanced" : "Standard")] } }
 func specs() -> [String: Any] {
+    engineLock.lock(); defer { engineLock.unlock() }
     var blockers = [String]()
     if !encoderReady { blockers.append("ffmpeg with the libmp3lame encoder is required. Install ffmpeg yourself (for example, brew install ffmpeg if you already use Homebrew), then restart this CLI.") }
     if voices().isEmpty && kokoroPython == nil { blockers.append("No installed Siri natural voices are exposed in this launch mode. Start with ./run.sh in Terminal. If still empty, choose and download a Siri voice in System Settings → Siri (or Apple Intelligence & Siri), then restart. Standard and novelty voices are intentionally hidden.") }
@@ -151,7 +158,7 @@ func handle(_ fd: Int32) {
         guard r.headers["host"] == "127.0.0.1:\(port)", r.headers["origin"] == nil || r.headers["origin"] == origin else { json(fd, 403, ["error":"Untrusted host or origin"]); return }
         if r.path == "/" && r.method == "GET" { respond(fd, 200, "text/html; charset=utf-8", try Data(contentsOf: htmlURL)); return }
         guard r.headers["authorization"] == "Bearer " + token else { json(fd, 403, ["error":"Session expired. Open the URL printed by the CLI."]); return }
-        if r.path == "/api/status" && r.method == "GET" { stateLock.lock(); let b = busy; stateLock.unlock(); json(fd, 200, ["specs":specs(), "voices":voices(), "busy":b, "engines":engines()]); return }
+        if r.path == "/api/status" && r.method == "GET" { refreshKokoro(); stateLock.lock(); let b = busy; stateLock.unlock(); json(fd, 200, ["specs":specs(), "voices":voices(), "busy":b, "engines":engines()]); return }
         if r.path.hasPrefix("/api/audio/") && r.method == "GET" {
             let id = String(r.path.dropFirst("/api/audio/".count)); stateLock.lock(); let exists = outputs.contains(id); stateLock.unlock()
             guard exists else { json(fd, 404, ["error":"Audio expired or not found"]); return }
@@ -161,14 +168,15 @@ func handle(_ fd: Int32) {
         guard r.headers["content-type"]?.hasPrefix("application/json") == true, let obj = try JSONSerialization.jsonObject(with: r.body) as? [String: Any], let text = obj["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.count <= 10_000, let voiceID = obj["voice"] as? String, let rate = obj["rate"] as? Double, rate.isFinite else { json(fd, 400, ["error":"Provide text, a voice and a finite rate."]); return }
         let engine = obj["engine"] as? String ?? "siri"
         let voice = installedVoices.first(where: {$0.identifier == voiceID})
-        let kokoroVoice = (kokoroStatus["voices"] as? [[String: String]])?.first(where: {$0["id"] == voiceID})
+        engineLock.lock(); let selectedKokoroPython = kokoroPython; let selectedKokoroStatus = kokoroStatus; engineLock.unlock()
+        let kokoroVoice = (selectedKokoroStatus["voices"] as? [[String: String]])?.first(where: {$0["id"] == voiceID})
         guard (engine == "siri" && voice != nil && (0.2...0.65).contains(rate)) || (engine == "kokoro" && kokoroVoice != nil && (0.5...2.0).contains(rate)) else { json(fd, 400, ["error":"Choose an available engine and voice. Siri rate: 0.20–0.65; Kokoro speed: 0.5–2.0."]); return }
         guard specs()["ready"] as? Bool == true, let ffmpeg else { json(fd, 503, ["error":"Requirements are unmet. Check Device readiness."]); return }
         stateLock.lock(); if busy { stateLock.unlock(); json(fd, 409, ["error":"Another generation is running. Wait for it to finish."]); return }; busy = true; stateLock.unlock()
         defer { stateLock.lock(); busy = false; stateLock.unlock() }
         let id = UUID().uuidString; let caf = session.appendingPathComponent(id + ".caf"); let mp3 = session.appendingPathComponent(id + ".mp3")
         defer { try? fm.removeItem(at: caf) }
-        if engine == "kokoro", let python = kokoroPython {
+        if engine == "kokoro", let python = selectedKokoroPython {
             let input = session.appendingPathComponent(id + ".json")
             defer { try? fm.removeItem(at: input) }
             try JSONSerialization.data(withJSONObject: obj).write(to: input)

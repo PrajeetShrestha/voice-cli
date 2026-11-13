@@ -1,4 +1,5 @@
 """Portable adapter contract/security tests, no neural packages required."""
+from unittest.mock import patch
 import importlib.util, pathlib, unittest, subprocess, sys, json, urllib.request, urllib.error
 P=pathlib.Path(__file__).resolve().parents[1]/'Sources/VoiceStudio/kokoro_bridge.py'
 spec=importlib.util.spec_from_file_location('bridge',P); b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
@@ -6,6 +7,11 @@ class Tests(unittest.TestCase):
  def test_catalog(self):
   self.assertEqual(len(b.VOICES),54);self.assertEqual(len(b.IDS),54)
   self.assertEqual(sum(v['id'].startswith('am_') for v in b.VOICES),9)
+ def test_detection_refresh(self):
+  with patch.object(b.sys,'version_info',(3,11)), patch.object(b.importlib.util,'find_spec',return_value=None):
+   self.assertFalse(b.detect()['available'])
+  with patch.object(b.sys,'version_info',(3,11)), patch.object(b.importlib.util,'find_spec',return_value=object()):
+   self.assertTrue(b.detect()['available'])
  def test_validation(self):
   data=dict(text='Hello',voice='af_heart',rate=1)
   self.assertEqual(b.validate(data),('Hello','af_heart',1))
