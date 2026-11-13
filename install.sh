@@ -11,9 +11,16 @@ esac
 [ "$#" -eq 0 ] || { echo 'Unexpected arguments.' >&2; exit 2; }
 
 fail() { printf 'Voice Studio: %s\n' "$*" >&2; exit 1; }
-[ "$(uname -s)" = Darwin ] || fail 'macOS 13 or newer is required.'
-[ "$(sw_vers -productVersion | cut -d. -f1)" -ge 13 ] || fail 'Update to macOS 13 or newer.'
-xcrun --find swift >/dev/null 2>&1 || fail 'Install Apple Command Line Tools with: xcode-select --install. Then rerun this installer.'
+os=$(uname -s)
+case "$os" in
+    Darwin)
+        [ "$(sw_vers -productVersion | cut -d. -f1)" -ge 13 ] || fail 'Update to macOS 13 or newer.'
+        xcrun --find swift >/dev/null 2>&1 || fail 'Install Apple Command Line Tools with: xcode-select --install.' ;;
+    Linux)
+        python=${VOICE_STUDIO_KOKORO_PYTHON:-${VOICE_STUDIO_PYTHON:-python3}}
+        "$python" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null || fail 'Python 3.10+ is required on Linux.' ;;
+    *) fail 'Only macOS and Linux are supported.' ;;
+esac
 
 # Use an existing encoder, or install one with an existing Homebrew installation.
 encoder=$(command -v ffmpeg || true)
@@ -38,7 +45,7 @@ fi
 
 install_root=${VOICE_STUDIO_INSTALL_ROOT:-"$HOME/.local/share/voice-studio"}
 bin_dir=${VOICE_STUDIO_BIN_DIR:-"$HOME/.local/bin"}
-release_ref=${VOICE_STUDIO_REF:-v0.1.0}
+release_ref=${VOICE_STUDIO_REF:-v0.2.0}
 case "$install_root:$bin_dir" in *'
 '*) fail 'Installation paths cannot contain newlines.' ;; esac
 staging=$(mktemp -d "${TMPDIR:-/tmp}/voice-studio-install.XXXXXX")
@@ -60,6 +67,7 @@ cp "$source_dir/Sources/VoiceStudio/main.swift" "$install_root/Sources/VoiceStud
 cp "$source_dir/Sources/VoiceStudio/index.html" "$install_root/Sources/VoiceStudio/index.html"
 if [ -f "$source_dir/Sources/VoiceStudio/kokoro_bridge.py" ]; then cp "$source_dir/Sources/VoiceStudio/kokoro_bridge.py" "$install_root/Sources/VoiceStudio/"; fi
 cp "$source_dir/run.sh" "$install_root/run.sh"
+cp "$source_dir/VERSION" "$install_root/VERSION"
 cp "$source_dir/scripts/narrate.py" "$install_root/scripts/narrate.py"
 chmod +x "$install_root/run.sh"
 # Quote the installation path for the generated POSIX shell launcher.
@@ -72,4 +80,4 @@ case ":$PATH:" in
     *":$bin_dir:"*) printf 'Or run: voice-studio web\n' ;;
     *) printf '\nTo use the short command, add this directory to PATH in your shell profile:\n  %s\n' "$bin_dir" ;;
 esac
-printf '\nDownload a natural Siri voice in System Settings if needed.\nRun the installer again to reinstall this release.\n'
+printf '\nOn macOS, download a natural Siri voice in System Settings if needed.\nOn Linux, install Kokoro in a separate Python environment to generate audio.\nSee README for setup. Run the installer again to reinstall this release.\n'

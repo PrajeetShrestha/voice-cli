@@ -4,8 +4,8 @@ with tempfile.TemporaryDirectory(prefix='voice-installer-test-') as work:
     work=pathlib.Path(work)
     archive=work/'source.tar.gz'
     with tarfile.open(archive,'w:gz') as tar:
-        for name in ['run.sh','Sources','scripts']:
-            tar.add(root/name,arcname='voice-cli-v0.1.0/'+name)
+        for name in ['run.sh','Sources','scripts','VERSION']:
+            tar.add(root/name,arcname='voice-cli-v0.2.0/'+name)
     mocks=work/'mocks';mocks.mkdir()
     curl=mocks/'curl'
     curl.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\nif [ "$1" = --output ]; then shift; cp '+shlex.quote(str(archive))+' "$1"; exit; fi\nshift\ndone\nexit 1\n');curl.chmod(0o755)
@@ -18,6 +18,7 @@ with tempfile.TemporaryDirectory(prefix='voice-installer-test-') as work:
         assert (install_root/'scripts/narrate.py').exists()
         assert (install_root/'Sources/VoiceStudio/index.html').read_bytes()==(root/'Sources/VoiceStudio/index.html').read_bytes()
     launcher=str(bin_dir/'voice-studio')
+    assert subprocess.check_output([launcher,'--version'],text=True).strip() == '0.2.0'
     for args in [['--help'], ['help'], ['web','--help'], ['run','web','--help']]:
         assert 'Usage: voice-studio' in subprocess.check_output([launcher]+args,text=True)
     for args in [['unknown'], ['run'], ['run','wrong'], ['web','--typo']]:

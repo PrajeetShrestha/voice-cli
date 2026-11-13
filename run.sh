@@ -10,6 +10,7 @@ Commands:
   web             Start the local Web UI and open your default browser
   run web         Alias for web
   help            Show this help
+  --version       Show installed version
 
 Options:
   --no-open       Start the server without opening a browser (web only)
@@ -25,6 +26,7 @@ Running without arguments also starts the Web UI for compatibility.
 HELP
 }
 case "${1:-}" in
+    --version) cat "$(dirname -- "$0")/VERSION"; exit 0 ;;
     help|-h|--help) usage; exit 0 ;;
     web) shift ;;
     run)
@@ -42,10 +44,18 @@ for arg in "$@"; do
     esac
 done
 cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-if [ "$(uname -s)" != Darwin ]; then
-    python=${VOICE_STUDIO_KOKORO_PYTHON:-python3}
-    exec "$python" Sources/VoiceStudio/kokoro_bridge.py serve "$@"
+# User-owned model environments survive Homebrew upgrades and uninstall.
+if [ -z "${VOICE_STUDIO_KOKORO_PYTHON:-}" ] && [ -x "$HOME/.local/share/voice-studio-kokoro/bin/python" ]; then
+    export VOICE_STUDIO_KOKORO_PYTHON="$HOME/.local/share/voice-studio-kokoro/bin/python"
 fi
+case "$(uname -s)" in
+    Linux)
+        python=${VOICE_STUDIO_KOKORO_PYTHON:-${VOICE_STUDIO_PYTHON:-python3}}
+        command -v "$python" >/dev/null 2>&1 || { echo 'Python 3.10+ is required.' >&2; exit 1; }
+        exec "$python" Sources/VoiceStudio/kokoro_bridge.py serve "$@" ;;
+    Darwin) ;;
+    *) echo 'Voice Studio supports macOS and Linux.' >&2; exit 1 ;;
+esac
 major=$(sw_vers -productVersion | cut -d. -f1)
 if [ "$major" -lt 13 ]; then echo 'Voice Studio requires macOS 13 or newer. Update macOS before running.' >&2; exit 1; fi
 if ! xcrun --find swift >/dev/null 2>&1; then echo 'Swift 5.9+ is required to build. Install Xcode or Apple Command Line Tools, then retry.' >&2; exit 1; fi

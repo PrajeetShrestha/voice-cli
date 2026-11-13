@@ -40,7 +40,7 @@ let kokoroURL = Bundle.module.url(forResource: "kokoro_bridge", withExtension: "
 #else
 let kokoroURL = htmlURL.deletingLastPathComponent().appendingPathComponent("kokoro_bridge.py")
 #endif
-let pythonCandidates = [ProcessInfo.processInfo.environment["VOICE_STUDIO_KOKORO_PYTHON"], fm.currentDirectoryPath + "/.venv/bin/python", fm.currentDirectoryPath + "/.venv-kokoro/bin/python", "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"].compactMap { $0 }
+let pythonCandidates = [ProcessInfo.processInfo.environment["VOICE_STUDIO_KOKORO_PYTHON"], ProcessInfo.processInfo.environment["VOICE_STUDIO_PYTHON"], fm.currentDirectoryPath + "/.venv/bin/python", fm.currentDirectoryPath + "/.venv-kokoro/bin/python", "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"].compactMap { $0 }
 let engineLock = NSRecursiveLock()
 var kokoroPython: String?
 var kokoroStatus: [String: Any] = ["id":"kokoro", "name":"Kokoro", "available":false, "reason":"Python with Kokoro was not found. Set VOICE_STUDIO_KOKORO_PYTHON to your Kokoro environment's Python, then restart.", "voices":[]]

@@ -1,6 +1,62 @@
 # Voice Studio
 
-Install the current version on macOS from a checkout:
+Local voiceover on **macOS and Linux**, with a browser UI, MP3 export, and a
+loopback-only HTTP API. macOS supports installed Siri voices and optional Kokoro;
+Linux uses Kokoro. No account or speech API key is required.
+
+## Install with Homebrew (macOS or Linux)
+
+With [Homebrew](https://brew.sh) installed:
+
+```sh
+brew install PrajeetShrestha/tap/voice-studio
+voice-studio web
+```
+
+This is our [project tap](https://github.com/PrajeetShrestha/homebrew-tap), not a
+Homebrew/core package. The formula installs ffmpeg and Python 3.12 dependencies.
+On macOS 13+, Apple Command Line Tools with Swift 5.9+ are also needed for Siri
+(`xcode-select --install`). Linux does not need Swift. See Homebrew's
+[supported Linux environments](https://docs.brew.sh/Homebrew-on-Linux).
+
+```sh
+voice-studio run web       # Alias
+voice-studio web --no-open # Headless: print the private session URL
+voice-studio --help
+voice-studio --version
+brew upgrade voice-studio
+```
+
+Keep Terminal running; Control-C stops the server. No project directory is needed.
+Homebrew must be on your PATH (follow `brew shellenv` instructions from its installer).
+If an older `~/.local/bin/voice-studio` takes precedence, check `type -a voice-studio`
+and use `"$(brew --prefix)/bin/voice-studio" web` or put Homebrew's bin earlier in PATH.
+Do not delete a launcher unless you know which installation it belongs to.
+
+**Kokoro is not bundled.** Installing the CLI opens the UI but Linux cannot synthesize
+until Kokoro is set up. Install packages in a user-owned environment (outside the
+Homebrew Cellar, so upgrades preserve it):
+
+```sh
+"$(brew --prefix python@3.12)/bin/python3.12" -m venv "$HOME/.local/share/voice-studio-kokoro"
+"$HOME/.local/share/voice-studio-kokoro/bin/python" -m pip install --upgrade pip
+# Linux: use CPU-only PyTorch to avoid unnecessary CUDA downloads.
+"$HOME/.local/share/voice-studio-kokoro/bin/python" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+"$HOME/.local/share/voice-studio-kokoro/bin/python" -m pip install kokoro soundfile
+```
+
+On **macOS**, replace the CPU-index PyTorch command with `python -m pip install torch`
+using the same virtual-environment Python path. For language support where needed,
+`brew install espeak-ng`; consult [Kokoro's official instructions](https://github.com/hexgrad/kokoro).
+The launcher automatically detects the environment above; custom environments can
+be selected with `VOICE_STUDIO_KOKORO_PYTHON=/absolute/path/to/python voice-studio web`.
+Model and voice files download only when you allow downloads in the UI. They remain
+in your user cache, not in the Homebrew installation. The first generation needs
+network access; subsequent fully cached generation can run offline.
+
+## Alternative: source / shell installer
+
+For macOS or Linux without a tap install:
 
 ```sh
 git clone https://github.com/PrajeetShrestha/voice-cli.git
@@ -8,23 +64,16 @@ cd voice-cli
 ./install.sh --local
 ```
 
-Already have a checkout? Run `git pull --ff-only` there, then `./install.sh --local`.
-Start the Web UI from **any directory**:
+Install the versioned release without retaining a checkout:
 
 ```sh
-voice-studio web
-# Also supported:
-voice-studio run web
-voice-studio web --no-open
-voice-studio --help
+curl -fsSL https://raw.githubusercontent.com/PrajeetShrestha/voice-cli/v0.2.0/install.sh | sh
 ```
 
-The browser opens automatically. Keep Terminal running; Control-C stops the server.
-If your shell cannot find `voice-studio`, add `export PATH="$HOME/.local/bin:$PATH"`
-to your shell profile, then open a new terminal. No project-directory change is
-needed after installation. Running `voice-studio` without arguments still works.
-
-Voice Studio turns text into downloadable MP3 narration using the natural Siri voices installed on your Mac. It runs locally with a compact browser interface and an HTTP API for coding agents. No account or API key required.
+Review remote scripts before executing them. The shell installer requires ffmpeg
+and, on Linux, Python 3.10+; it can use an existing Homebrew to install ffmpeg.
+It installs into `~/.local/share/voice-studio` and `~/.local/bin`; add that bin
+directory to PATH if needed. This is separate from a Homebrew-managed installation.
 
 ## Current interface
 
@@ -42,8 +91,9 @@ tested on Linux; a post-install Linux screenshot is not included here.
 
 ## Requirements and installation
 
-- **macOS 13+** and **Swift 5.9+**, provided by Xcode or Apple Command Line Tools. If needed, run `xcode-select --install` and finish setup before installing.
-- An installed **natural Siri voice**. Download one in System Settings → Siri or Apple Intelligence & Siri → Voice.
+- **macOS:** macOS 13+ and **Swift 5.9+**, provided by Xcode or Apple Command Line Tools. If needed, run `xcode-select --install` and finish setup before installing.
+- **Linux:** Python 3.10+ and Kokoro for narration; no Swift or Siri support.
+- For Siri on macOS, an installed **natural Siri voice**. Download one in System Settings → Siri or Apple Intelligence & Siri → Voice.
 - **ffmpeg with libmp3lame**. The installer uses an existing ffmpeg or installs it through an existing Homebrew setup. If neither is available, install [Homebrew](https://brew.sh), then run `brew install ffmpeg`.
 
 The local installer copies this checkout and stores the app in `~/.local/share/voice-studio` with a launcher in `~/.local/bin`. If that directory is on your PATH, you can use `voice-studio` directly. Quit the app before rerunning the installer to reinstall it.
@@ -85,7 +135,7 @@ The walkthrough covers installation, the Web UI, and Codex/Claude workflows, nar
 
 Text is plain Unicode, up to 10,000 characters, with a 64 KiB request-body limit; some Unicode input reaches a limit earlier. One render runs at a time. At least 256 MiB of free temporary disk space is required, and long passages may need more.
 
-The server accepts connections only from the same Mac at `127.0.0.1`; the mobile layout does not allow a separate phone to connect. Keep the session URL private. There are no external UI assets or analytics. Closing the browser does not stop rendering, and forced termination can leave temporary audio behind.
+The server accepts connections only from the same computer at `127.0.0.1`; the mobile layout does not allow a separate phone to connect. Keep the session URL private. There are no external UI assets or analytics. Closing the browser does not stop rendering, and forced termination can leave temporary audio behind.
 
 ## Guides and agent workflows
 
