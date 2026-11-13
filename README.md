@@ -54,6 +54,16 @@ Model and voice files download only when you allow downloads in the UI. They rem
 in your user cache, not in the Homebrew installation. The first generation needs
 network access; subsequent fully cached generation can run offline.
 
+### Packaging verification
+
+Release `v0.2.0` was installed through Homebrew on Apple Silicon macOS using the
+machine's existing compatible ffmpeg and Python dependencies. The installed
+command, browser HTML and authenticated status API were verified. On Linux, the
+exact checksum-verified release passed CLI/API tests and real offline Kokoro MP3
+generation. A full Homebrew install in the test container reached the build stage
+but was blocked by that container's Unix-socket permissions; clean Linux Homebrew
+installation is not yet verified there. No model is installed by the formula.
+
 ## Alternative: source / shell installer
 
 For macOS or Linux without a tap install:
