@@ -1,14 +1,28 @@
 # Voice Studio
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/PrajeetShrestha/voice-cli/v0.1.0/install.sh | /bin/sh
-```
-
-Start the Web UI:
+Install the current version on macOS from a checkout:
 
 ```sh
-~/.local/bin/voice-studio
+git clone https://github.com/PrajeetShrestha/voice-cli.git
+cd voice-cli
+./install.sh --local
 ```
+
+Already have a checkout? Run `git pull --ff-only` there, then `./install.sh --local`.
+Start the Web UI from **any directory**:
+
+```sh
+voice-studio web
+# Also supported:
+voice-studio run web
+voice-studio web --no-open
+voice-studio --help
+```
+
+The browser opens automatically. Keep Terminal running; Control-C stops the server.
+If your shell cannot find `voice-studio`, add `export PATH="$HOME/.local/bin:$PATH"`
+to your shell profile, then open a new terminal. No project-directory change is
+needed after installation. Running `voice-studio` without arguments still works.
 
 Voice Studio turns text into downloadable MP3 narration using the natural Siri voices installed on your Mac. It runs locally with a compact browser interface and an HTTP API for coding agents. No account or API key required.
 
@@ -18,7 +32,7 @@ Voice Studio turns text into downloadable MP3 narration using the natural Siri v
 - An installed **natural Siri voice**. Download one in System Settings → Siri or Apple Intelligence & Siri → Voice.
 - **ffmpeg with libmp3lame**. The installer uses an existing ffmpeg or installs it through an existing Homebrew setup. If neither is available, install [Homebrew](https://brew.sh), then run `brew install ffmpeg`.
 
-The command above runs [install.sh](install.sh), downloads release `v0.1.0`, and stores the app in `~/.local/share/voice-studio` with a launcher in `~/.local/bin`. If that directory is on your PATH, you can use `voice-studio` directly. Quit the app before rerunning the installer to reinstall it.
+The local installer copies this checkout and stores the app in `~/.local/share/voice-studio` with a launcher in `~/.local/bin`. If that directory is on your PATH, you can use `voice-studio` directly. Quit the app before rerunning the installer to reinstall it.
 
 ## Using the Web UI
 
@@ -90,8 +104,8 @@ This leaves ffmpeg, Homebrew, voice assets, and saved recordings in place.
 ## Optional Kokoro engine (macOS and Linux)
 
 The latest source checkout supports **Siri + Kokoro on macOS** and **Kokoro on Linux**.
-The tagged `v0.1.0` installer above is the older Siri-only release; clone/pull this
-repository for these additions. The current `install.sh` remains a macOS installer.
+The tagged `v0.1.0` installer is the older Siri-only release; use the current
+checkout and `./install.sh --local` for these additions. The current `install.sh` remains a macOS installer.
 Linux uses Python directly and does not require Swift.
 
 Kokoro is optional: launching the app never installs Python packages or downloads a
